@@ -8,7 +8,8 @@ contract Lottery {
     uint public stake;
 
     constructor(){
-        manager = msg.sender;
+        // sets the address that deploys the contract as manager
+        manager = payable(msg.sender);
     }
 
     receive() payable external{
@@ -36,13 +37,26 @@ contract Lottery {
     }
 
     function pickWinner() public{
-        require(msg.sender == manager, "only manager can pick winner");
-        require(players.length >= 3, "there must be at least 3 players before you can pick a winner");
+
+        if(players.length < 10) { // If there are at least 10 players, anyone can pick the winner and finish the lottery
+            require(msg.sender == manager, "only manager can pick winner");
+            require(players.length >= 3, "there must be at least 3 players before you can pick a winner");
+        }
+
+        uint managerFee =  (getBalance() * 10) / 100;  // 10% of stake as manager fee
+        uint winnerPrize = (getBalance() * 90) / 100; // 90% of total stake goes to the lottery winner
+
         
-        uint winnerIndex = random() % players.length;
-        address payable winner = players[winnerIndex];
+        uint winnerIndex = random() % players.length;  // get random number to select winner
+        address payable winner = players[winnerIndex]; // pick winner
+
         // transfer contract balance to the winner
-        winner.transfer(getBalance());
+        winner.transfer(winnerPrize);
+
+        // transfer lottery fee to manager
+        payable(manager).transfer(managerFee);
+
+
         // reset the lottery for anothe around of play
         players = new address payable[](0); // 0 sets the size of the new dynamic array
     }
